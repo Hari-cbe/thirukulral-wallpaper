@@ -5,13 +5,12 @@ Daily Thirukkural Desktop Wallpaper Application
 Fetches a daily or random Thirukkural from https://kural.codewithram.dev/api/kural/{number}
 (where number is 1..1330), renders a high-resolution desktop wallpaper with Tamil & English
 meanings, sets it as the OS desktop background, and supports one-command boot startup registration
-for Windows, macOS, and Linux.
+for Linux.
 """
 
 from __future__ import annotations
 
 import argparse
-import ctypes
 import datetime as dt
 import json
 import os
@@ -88,12 +87,12 @@ def pick_kural_number(mode: str = "random", explicit_number: Optional[int] = Non
         return explicit_number
 
     if mode == "daily":
-        today_seed = int(dt.date.today().strftime("%Y%m%d"))
-        minvariable = int((subprocess.run(["less",INPUT_VARIABLE],capture_output=True,text=True)).stdout.strip())
-        if 0 <= minvariable < 1330: 
-            os.system(f"echo {minvariable + 1} > {INPUT_VARIABLE}")
-        else:
-            os.system(f"echo {1} > {INPUT_VARIABLE}")
+        td = str(dt.date.today())
+        date, minvariable = ((subprocess.run(["less",INPUT_VARIABLE],capture_output=True,text=True)).stdout.strip().split(":"))
+        if 0 <= int(minvariable) < 1330 and date != td: 
+            os.system(f"echo {td}:{int(minvariable) + 1} > {INPUT_VARIABLE}")
+        elif int(minvariable) > 1330:
+            os.system(f"echo {td}:{1} > {INPUT_VARIABLE}")
         return minvariable
 
     return random.randint(MIN_KURAL, MAX_KURAL)
@@ -164,7 +163,7 @@ def fetch_kural(
 
 
 def find_font(preferred_names: List[str], size: int) -> ImageFont.FreeTypeFont:
-    """Locates an installed Tamil/Unicode-capable font across Windows, macOS, and Linux."""
+    """Locates an installed Tamil/Unicode-capable font across Linux."""
     search_paths = [
         # Linux Noto Tamil & Sans fonts
         "/usr/share/fonts/truetype/noto/AnekTamil-SemiBold.ttf ",
@@ -327,29 +326,9 @@ def render_wallpaper(
 
 
 def set_os_wallpaper(image_path: Path) -> bool:
-    """Sets the desktop wallpaper on Windows, macOS, or Linux."""
+    """Sets the desktop wallpaper on Linux."""
     resolved = str(image_path.resolve())
     system = platform.system()
-
-    if system == "Windows":
-        SPI_SETDESKWALLPAPER = 20
-        SPIF_UPDATEINIFILE = 0x01
-        SPIF_SENDWININICHANGE = 0x02
-        result = ctypes.windll.user32.SystemParametersInfoW(
-            SPI_SETDESKWALLPAPER,
-            0,
-            resolved,
-            SPIF_UPDATEINIFILE | SPIF_SENDWININICHANGE,
-        )
-        return bool(result)
-
-    if system == "Darwin":
-        script = (
-            f'tell application "System Events" to set picture of every desktop '
-            f'to POSIX file "{resolved}"'
-        )
-        res = subprocess.run(["osascript", "-e", script], check=False)
-        return res.returncode == 0
 
     if system == "Linux":
         uri = f"file://{resolved}"
@@ -375,28 +354,6 @@ def install_boot_startup(mode: str = "random", scholar: str = "ta_mu_va") -> str
     script_path = Path(__file__).resolve()
     python_exe = sys.executable
     system = platform.system()
-
-    if system == "Windows":
-        startup_dir = (
-            Path(os.environ.get("APPDATA", ""))
-            / "Microsoft"
-            / "Windows"
-            / "Start Menu"
-            / "Programs"
-            / "Startup"
-        )
-        startup_dir.mkdir(parents=True, exist_ok=True)
-        vbs_path = startup_dir / "ThirukkuralWallpaper.vbs"
-        pythonw_exe = Path(python_exe).with_name("pythonw.exe")
-        exe_to_use = str(pythonw_exe if pythonw_exe.exists() else python_exe)
-        cmd = f'"{exe_to_use}" "{script_path}" --mode {mode} --scholar {scholar}'
-        vbs_content = (
-            'Set WshShell = CreateObject("WScript.Shell")\n'
-            f'WshShell.Run "{cmd.replace(chr(34), chr(34)*2)}", 0, False\n'
-        )
-        vbs_path.write_text(vbs_content, encoding="utf-8")
-        return f"Installed Windows Startup launcher at: {vbs_path}"
-
 
     # Linux (XDG Autostart)
     autostart_dir = Path.home() / ".config" / "autostart"
