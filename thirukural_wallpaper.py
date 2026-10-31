@@ -89,10 +89,12 @@ def pick_kural_number(mode: str = "random", explicit_number: Optional[int] = Non
     if mode == "daily":
         td = str(dt.date.today())
         date, minvariable = ((subprocess.run(["less",INPUT_VARIABLE],capture_output=True,text=True)).stdout.strip().split(":"))
-        if 0 <= int(minvariable) < 1330 and date != td: 
-            os.system(f"echo {td}:{int(minvariable) + 1} > {INPUT_VARIABLE}")
+        if 0 <= int(minvariable) < 1330 and date < td:
+            minvariable = int(minvariable) + 1 
+            os.system(f"echo {td}:{minvariable + 1} > {INPUT_VARIABLE}")
         elif int(minvariable) > 1330:
             os.system(f"echo {td}:{1} > {INPUT_VARIABLE}")
+        print(minvariable)
         return minvariable
 
     return random.randint(MIN_KURAL, MAX_KURAL)
@@ -287,7 +289,7 @@ def render_wallpaper(
             fill=(245, 197, 66),
         )
         cursor_y += int(height * 0.032)
-        for wrapped in textwrap.wrap(ta_text, width=72):
+        for wrapped in textwrap.wrap(ta_text, width=140):
             draw.text((pad_x, cursor_y), wrapped, font=font_body, fill=(226, 232, 240))
             cursor_y += int(height * 0.032)
         cursor_y += int(height * 0.02)
@@ -302,7 +304,7 @@ def render_wallpaper(
             fill=(96, 165, 250),
         )
         cursor_y += int(height * 0.032)
-        for wrapped in textwrap.wrap(en_modern, width=90):
+        for wrapped in textwrap.wrap(en_modern, width=140):
             draw.text((pad_x, cursor_y), wrapped, font=font_body, fill=(226, 232, 240))
             cursor_y += int(height * 0.032)
 
@@ -316,7 +318,7 @@ def render_wallpaper(
             fill=(148, 163, 184),
         )
         cursor_y += int(height * 0.030)
-        for wrapped in textwrap.wrap(en_classic, width=90):
+        for wrapped in textwrap.wrap(en_classic, width=140):
             draw.text((pad_x, cursor_y), wrapped, font=font_translit, fill=(148, 163, 184))
             cursor_y += int(height * 0.028)
 
